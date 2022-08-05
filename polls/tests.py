@@ -34,32 +34,26 @@ class QuestionIndexViewTests(TestCase):
         self.assert_no_recent_questions(response)
 
     def test_past_question(self):
-        question = self.create_question("Past question.", -30)
+        question = QuestionTestUtils.create_question("Past question.", -30)
         response = self.get_response_from_index()
         self.assert_response_queryset_equals(response, [question])
 
     def test_future_question(self):
-        self.create_question("Future question.", 30)
+        QuestionTestUtils.create_question("Future question.", 30)
         response = self.get_response_from_index()
         self.assert_no_recent_questions(response)
 
     def test_future_and_past_question(self):
-        past_question = self.create_question("Past question.", -30)
-        self.create_question("Future question.", 30)
+        past_question = QuestionTestUtils.create_question("Past question.", -30)
+        QuestionTestUtils.create_question("Future question.", 30)
         response = self.get_response_from_index()
         self.assert_response_queryset_equals(response, [past_question])
 
     def test_two_past_questions_order(self):
-        past_question_1 = self.create_question("First past question.", -30)
-        past_question_2 = self.create_question("Seconds past question.", -5)
+        past_question_1 = QuestionTestUtils.create_question("First past question.", -30)
+        past_question_2 = QuestionTestUtils.create_question("Seconds past question.", -5)
         response = self.get_response_from_index()
         self.assert_response_queryset_equals(response, [past_question_2, past_question_1])
-
-    @staticmethod
-    def create_question(question_text, days):
-        time = timezone.now() + datetime.timedelta(days)
-        new_question = Question.objects.create(question_text=question_text, pub_date=time)
-        return new_question
 
     def get_response_from_index(self):
         response = self.client.get(reverse('polls:index'))
@@ -72,3 +66,27 @@ class QuestionIndexViewTests(TestCase):
 
     def assert_response_queryset_equals(self, response, expected_queryset):
         self.assertQuerysetEqual(response.context[QUESTION_LIST_NAME], expected_queryset)
+
+
+class QuestionDetailViewTests(TestCase):
+
+    def test_future_question_not_accessible(self):
+        future_question = QuestionTestUtils.create_question("Future question.", 5)
+        url = reverse('polls:detail', args=(future_question.id,))
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_past_question_is_accessible(self):
+        past_question = QuestionTestUtils.create_question("Past question.", -5)
+        url = reverse('polls:detail', args=(past_question.id,))
+        response = self.client.get(url)
+        self.assertContains(response, past_question.question_text)
+
+
+class QuestionTestUtils:
+
+    @staticmethod
+    def create_question(question_text, days):
+        time = timezone.now() + datetime.timedelta(days)
+        new_question = Question.objects.create(question_text=question_text, pub_date=time)
+        return new_question
