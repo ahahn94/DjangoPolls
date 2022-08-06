@@ -22,3 +22,8 @@ class QuestionModelTests(TestCase):
         almost_a_day_ago = timezone.now() - datetime.timedelta(days=0, hours=23, minutes=59, seconds=59)
         recent_question = Question(pub_date=almost_a_day_ago)
         self.assertIs(recent_question.was_published_recently(), True)
+
+    def test_to_string(self):
+        text = "To String Test"
+        question = Question(question_text=text, pub_date=timezone.now())
+        self.assertEqual(question.__str__(), text)
